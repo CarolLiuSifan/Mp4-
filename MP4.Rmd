@@ -1,0 +1,245 @@
+---
+title: 'Will There Be More War Movies If the Public Thinks About War More?'
+author: "Sifan Liu, Ziheng Ru, Runxin Wang"
+date: "12/1/2017"
+output:
+  html_document:
+    theme: cerulean
+    code_folding: hide
+    fig_width: 8
+    fig_height: 5
+    fig_caption: true
+---
+
+---
+<style>
+body {
+ font-size:16px;
+}
+</style>
+
+![Hacksaw Ridge, 2016](https://pbs.twimg.com/media/CvOXoqGVIAASLKo.jpg)
+
+What do war movies talk about? Some people thinks of heroes, terrorism, blood or nationalism. Other people may mention [*Hacksaw Ridge*](http://www.imdb.com/title/tt2119532/), one of the representing modern war film, is ["a film about family, faith, love and forgiveness all put to the test in an arena of violent conflict.”](http://www.rollingstone.com/movies/reviews/peter-travers-hacksaw-ridge-movie-review-w447541) It tells the real story of  WWII American Army Medic Desmond T. Doss, who served during the Battle of Okinawa, refused to kill people, and became the first man in American history to receive the Medal of Honor without firing a shot. 
+
+Anthony Lane, a film critic for *The New Yorker*, said that [“Mel Gibson uses an implacably violent film to make viewers understand the faith of a Seventh-Day Adventist who wants no part of violence at all.”](https://www.newyorker.com/magazine/2016/11/07/the-madness-and-majesty-of-hacksaw-ridge)
+
+The popularity of *Hacksaw Ridge* shows the trend that many war movies are becoming pacifist. One possible cause of the changing theme of war movies is the interests of movie-goers. In this highly commercialized world, manufacturers make genres of movies that cater to the audience.
+
+To understand this trend, we look at periods during which more war movies were produced. We find out the prevalence of war movies can be heavily relied on historical events. Other factors are also relevant: huge competition between two countries for film industry, economic growth, restricting film budget, and government policies. With all these external factors, manufacturers produce films in a specific genre more.
+
+We explore the trend of war movies and try to explain why the popularity floated, focusing on post-1920 era of movie industry, as it is the modern era of movies. 
+
+<iframe width="900" height="506" src="https://www.youtube.com/embed/c2vF12Wb8WA" frameborder="0" gesture="media" allow="encrypted-media" allowfullscreen></iframe>
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library(mdsr)
+library(RMySQL)
+library(tidyverse)
+library(rmarkdown)
+library(ggthemes)
+library(DT)
+db <- dbConnect_scidb(dbname = "imdb")
+```
+
+```{r}
+War_US <- db %>%
+  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number, t. production_year
+FROM title t
+JOIN movie_info mi1 ON t. id = mi1. movie_id
+JOIN movie_info mi2 ON t. id = mi2. movie_id
+JOIN movie_info mi3 ON t. id = mi3. movie_id
+WHERE t. kind_id = 1
+AND mi3. info_type_id = 1
+AND mi1. info_type_id = 3
+AND mi2. info_type_id = 8 
+AND mi3. info >40
+AND mi1.info = 'War'
+AND mi2. info LIKE 'USA'
+GROUP BY t.production_year")
+```
+
+```{r}
+datatable(War_US)
+```
+
+The graph below shows the amount of war movies made in the US. There are three significant peaks: 1939 to 1945, 1955 to 1973, and after the 2000s.
+
+```{r, message = FALSE, warning = FALSE}
+# Draw the graph for war movies in the US
+ggplot(War_US, aes(y = number, x = production_year)) +
+ geom_bar(stat = "identity", position = "stack") +
+  labs(title = "War Movies in the US") +
+  geom_smooth()+
+   xlim(1920, 2015)+
+  theme_fivethirtyeight()
+```
+
+
+The first peak is around 1939 to 1945, which is the time of World War II. Relaying on European market for profit, most Hollywood war films didn’t transmit a clear anti-Nazi message. Of course, there are exceptions, for example [*The Great Dictator*](http://www.imdb.com/title/tt0032553/), which transmit a message of anti-fascism. But Hollywood had not held a firm view point until the Pearl Harbor. Most war movies feature a group of men from different background, whom are considered as a unit on the battlefield. This kind of narrative in war movie is no longer the mainstream currently. Due to limited financial sources, government cut the amount of available film stock by 25 percent and restricted the amount of money can be spent on each film. In belief that war movies can contribute to national morale but fear of immediate censorship, government even established agencies to supervise film industry during WWII. However, film industry still remain highly profitable during war time as watching a movie is one of the few enjoyable thing for people in such a depressing time.
+
+![The Great Dictator, 1940](http://www.dw.com/image/16911675_304.jpg){#id .class width=750 height=500px}
+
+The second peak occurred during the Vietnam War period from 1955 to 1973. [*The Green Berets*](http://www.imdb.com/title/tt0063035/) ^[The Green Berets is the colloquial form of The United States Army Special Forces. The Green Berets are a special operations force tasked with five primary missions: unconventional warfare (the original and most important mission of Special Forces), foreign internal defense, special reconnaissance, direct action, and counter-terrorism.  Cited from: https://en.wikipedia.org/wiki/Special_Forces_(United_States_Army)
+] is a film in 1968 featuring the Vietnam War. Two teams of crack Green Berets were chosen to accomplish a mission in South Vietnam during the hardest time. Most of movies produced in this era are promoting nationalism by shallowly posing Vietnam as villain and creating American heroes. We noticed that war movies highly rely on historical events.
+
+
+In 2000s, more people are familiar with movies. Because of the mass production of movies, all genres of movies had a significant increase of amount at that time. However, it's interesting that the themes of war movies has shifted. Most war movies in the past focused on the realistic review of historical events. More recent war films focus on individuals and transmit humanitarian and anti-war messages. For example, the movie [*Saving Private Ryan*](http://www.imdb.com/title/tt0120815/) filmed in 1998 shows the glory of humanity and the deep self-reflection about the war in the dark era of WWII.
+
+![Saving Private Ryan, 1998](https://images.metadata.sky.com/pd-image/89a529b2-76ae-4e72-a31b-709a06d70ba6/background/1100)
+
+Wondering if this argument applies for other countries, we looked into five other countries including the United Kingdom, Japan, Italy, Germany, and Soviet Union.
+
+```{r, message = FALSE, warning = FALSE}
+# Database Querying using SQL to get war movies made in China
+War_UK <- db %>%
+  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number, t. production_year
+FROM title t
+JOIN movie_info mi1 ON t. id = mi1. movie_id
+JOIN movie_info mi2 ON t. id = mi2. movie_id
+JOIN movie_info mi3 ON t. id = mi3. movie_id
+WHERE t. kind_id = 1
+AND mi3. info_type_id = 1
+AND mi1. info_type_id = 3
+AND mi2. info_type_id = 8 
+AND mi3. info >40
+AND mi1.info = 'War'
+AND mi2. info LIKE 'UK'
+AND mi1.info is NOT NULL
+GROUP BY t.production_year")
+```
+
+```{r, message = FALSE, warning = FALSE, fig.show="hold", fig.width=3}
+# Draw the graph for war movies in China
+ggplot(War_UK, aes(y = number, x = production_year)) +
+ geom_bar(stat = "identity", position = "stack") +
+  labs(title = "War Movies in the UK") +
+   geom_smooth()+
+  xlim(1925, 2015)+
+  theme_fivethirtyeight()
+```
+
+The United Kingdom, another victor of the WWII, has a very similar trend of war movies compared to the United States. WWII has significant influence on war movies, since we can see the sudden peak occurs around 1939-1945. War movies remain popular from 1950 to 1960. One possible reason is that the UK occupied many colonies earlier. ^[The British Empire is known as the sun never set empire. However, the flourishing British Empire gradually lost its power after the Second World War. In the meantime, many British Colonies began to seek independence. The great changes in the world makes the UK involved in these independence fights such as the Mau Mau Uprising.]The occupation makes the UK involved in many fights with its colonies that sought independence in 1950s.
+1960 -1980 is a peaceful era for the UK. With less topics concerning war, the number of war movies declined correspondingly.
+```{r, message = FALSE, warning = FALSE}
+# Database Querying using SQL to get war movies made in China
+War_Japan <- db %>%
+  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number, t. production_year
+FROM title t
+JOIN movie_info mi1 ON t. id = mi1. movie_id
+JOIN movie_info mi2 ON t. id = mi2. movie_id
+JOIN movie_info mi3 ON t. id = mi3. movie_id
+WHERE t. kind_id = 1
+AND mi3. info_type_id = 1
+AND mi1. info_type_id = 3
+AND mi2. info_type_id = 8 
+AND mi3. info >40
+AND mi1.info = 'War'
+AND mi2. info LIKE 'Japan'
+AND mi1.info is NOT NULL
+GROUP BY t.production_year")
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Draw the graph for war movies in the US
+ggplot(War_Japan, aes(y = number, x = production_year)) +
+ geom_bar(stat = "identity", position = "stack") +
+  labs(title = "War Movies in Japan") +
+  geom_smooth()+
+   xlim(1925, 2015)+
+  theme_fivethirtyeight()
+```
+
+However, war is not the major influence for Japanese war movies. Post-WWII period led to the production of many anti-war films like [*Godzilla*]( http://www.imdb.com/title/tt0047034/), The [*Burmese Harp*](http://www.imdb.com/title/tt0049012/), and [*Fires On The Plain*](http://www.imdb.com/title/tt0053121/?ref_=fn_al_tt_1).1950s is also known as the golden age of Japanese film because a huge competition between American films and Japanese films raised to dominate the Japanese film market. What’s more, the economic growth ^[During Wartime, due to the highly demand of production, Japanese economic received rapid development. After the war was over, most companies in Japan were converted to a peaceful economic development. Because of the US policies and Japan’s banking policies, private companies in Japan were able to develop at a high pace. In 1968, Japan overtook West Germany as the No. 2 spot after the US.] makes 1950s the age for film industry flourishing.
+
+```{r, message = FALSE, warning = FALSE}
+# Database Querying using SQL to get war movies made in China
+War_Italy <- db %>%
+  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number, t. production_year
+FROM title t
+JOIN movie_info mi1 ON t. id = mi1. movie_id
+JOIN movie_info mi2 ON t. id = mi2. movie_id
+JOIN movie_info mi3 ON t. id = mi3. movie_id
+WHERE t. kind_id = 1
+AND mi3. info_type_id = 1
+AND mi1. info_type_id = 3
+AND mi2. info_type_id = 8 
+AND mi3. info >40
+AND mi1.info = 'War'
+AND mi2. info LIKE 'Italy'
+AND mi1.info is NOT NULL
+GROUP BY t.production_year")
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Draw the graph for war movies in the US
+ggplot(War_Italy, aes(y = number, x = production_year)) +
+ geom_bar(stat = "identity", position = "stack") +
+  labs(title = "War Movies in Italy") +
+  geom_smooth()+
+   xlim(1936, 2015)+
+  theme_fivethirtyeight()
+```
+
+Similarly, the film industry of Italy is influenced by the country’s economic status. The aftermath of World War II left Italy with a destroyed economy and a divided society. In the 1950s and 1960s the country enjoyed prolonged economic boom, which was accompanied by a dramatic rise in the standard of living of ordinary Italians. This economic influence could explain the boost of number of war movies in the 1960s.
+
+```{r, message = FALSE, warning = FALSE}
+# Database Querying using SQL to get war movies made in China
+War_Germany <- db %>%
+  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number, t. production_year
+FROM title t
+JOIN movie_info mi1 ON t. id = mi1. movie_id
+JOIN movie_info mi2 ON t. id = mi2. movie_id
+JOIN movie_info mi3 ON t. id = mi3. movie_id
+WHERE t. kind_id = 1
+AND mi3. info_type_id = 1
+AND mi1. info_type_id = 3
+AND mi2. info_type_id = 8 
+AND mi3. info > 40
+AND mi1.info = 'War'
+AND mi2. info LIKE '%Germany'
+AND mi1.info is NOT NULL
+GROUP BY t.production_year")
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Draw the graph for war movies in China
+ggplot(War_Germany, aes(y = number, x = production_year)) +
+ geom_bar(stat = "identity", position = "stack") +
+  labs(title = "War Movies in Germany") +
+   geom_smooth()+
+  xlim(1925, 2015)+
+  theme_fivethirtyeight()
+```
+
+People might be surprised that the amount of war movies during the era of Nazi Germany is not increasing. Since Nazis used films for propaganda, nationalizing the film industry, the German film industry suffered the most severe crisis in 1930s. ^[There were multiple reasons for this crisis. Many of the most capable actors and film-makers had left the country after the Nazi government's power rises; others had been banned. More and more production companies went bankrupt. The number of companies dropped from 114 (1933–35) to 79 (1936–38) to 38 (1939–41).] 
+This government control explains why there were no boost of war film production during wartime.
+```{r, message = FALSE, warning = FALSE}
+# Database Querying using SQL to get war movies made in China
+War_SU <- db %>%
+  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number, t. production_year
+FROM title t
+JOIN movie_info mi1 ON t. id = mi1. movie_id
+JOIN movie_info mi2 ON t. id = mi2. movie_id
+JOIN movie_info mi3 ON t. id = mi3. movie_id
+WHERE t. kind_id = 1
+AND mi3. info_type_id = 1
+AND mi1. info_type_id = 3
+AND mi2. info_type_id = 8 
+AND mi3. info >40
+AND mi1.info = 'War'
+AND mi2. info LIKE 'Soviet Union'
+AND mi1.info is NOT NULL
+GROUP BY t.production_year")
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Draw the graph for war movies in China
+ggplot(War_SU, aes(y = number, x = production_year)) +
+ geom_bar(stat = "identity", position = "stack") +
+  labs(title = "War Movies in the Soviet Union") +
+   geom_smooth()+
+  xlim(1923, 1991)+
+  theme_fivethirtyeight()
+```
+
+It is true for Soviet Union that there were more war movies during war time. From 1941 to 1944, since government encouraged the production of war movies, the amount of war movies boosted. From 1945 to 1953, Stalin began to restrict war movies as he found out that war movies made Soviet Union’s residents more familiar with exotic culture.
