@@ -1,10 +1,10 @@
 ---
-title: 'Will There Be More War Movies If the Public Thinks About War More?'
+title: 'When war becomes entertainment'
 author: "Sifan Liu, Ziheng Ru, Runxin Wang"
 date: "12/1/2017"
 output:
   html_document:
-    theme: cerulean
+    theme: spacelab
     code_folding: hide
     fig_width: 9
     fig_height: 4
@@ -20,13 +20,13 @@ body {
 
 ![Hacksaw Ridge, 2016](https://pbs.twimg.com/media/CvOXoqGVIAASLKo.jpg)
 
-The [Hacksaw Ridge](http://www.imdb.com/title/tt2119532/) in 2016, said by Rex Reed from Observer, ["is the best war film since Saving Private Ryan"](http://observer.com/2016/11/mel-gibsons-hacksaw-ridge-is-the-best-war-film-since-saving-private-ryan/). 
+Andrew Todd, a film critic from *Birth. Movie. Death.*, said one of the most popular recent war movie [Hacksaw Ridge](http://www.imdb.com/title/tt2119532/), [“feels like a movie made during World War II to drum up enlistments”](http://birthmoviesdeath.com/2016/11/07/hacksaw-ridge-is-brutal-war-propaganda-straight-outta-the-40s) 
 
-It tells the real story of  WWII American Army Medic Desmond T. Doss, who served during the Battle of Okinawa, refused to kill people, and became the first man in American history to receive the Medal of Honor without firing a shot.
+It tells the real story of WWII American Army Medic Desmond T. Doss, who served during the Battle of Okinawa, refused to kill people, and became the first man in American history to receive the Medal of Honor without firing a shot. Hacksaw Ridge attracted our interest back to war movies, which is a genre strongly associated with the 20th century.
 
-Manufacturers tend to make movies with genres catering to the audience. To understand this trend, we looked at periods during which a relative high proportion of war movies were produced. We found out the prevalence of war movies could be partially dependent on historical factors. To explore whether there's a relationship between warfare and the proportion of war movies, We focused on post-1920 era of movie industry, as it’s the modern era of movies.  
+Film Studios tend to make movies of specific genres catering to the audience. To understand what drives public desire for war movies, we looked at periods during which a relative high proportion of war movies were produced. We found out the prevalence of war movies could be partially related to historical factors. To explore whether there's a relationship between real-life warfare and the proportion of war movies made during that time, we focused on post-1920 era of movie industry, as it’s the modern era of movies.   
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/c2vF12Wb8WA" frameborder="0" gesture="media" allow="encrypted-media" allowfullscreen></iframe>
+<iframe width="840" height="472.5" src="https://www.youtube.com/embed/c2vF12Wb8WA" frameborder="0" gesture="media" allow="encrypted-media" allowfullscreen></iframe>
 ```{r, echo = FALSE, message = FALSE, warning = FALSE}
 library(mdsr)
 library(RMySQL)
@@ -37,9 +37,10 @@ library(DT)
 db <- dbConnect_scidb(dbname = "imdb")
 ```
 
-```{r}
+```{r,  message = FALSE, warning = FALSE}
+# Database Querying using SQL to get war movies in the US
 War_US <- db %>%
-  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number, t. production_year
+  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number, t. production_year, mi2. info
 FROM title t
 JOIN movie_info mi1 ON t. id = mi1. movie_id
 JOIN movie_info mi2 ON t. id = mi2. movie_id
@@ -48,15 +49,16 @@ WHERE t. kind_id = 1
 AND mi3. info_type_id = 1
 AND mi1. info_type_id = 3
 AND mi2. info_type_id = 8 
-AND mi3. info >40
-AND mi1.info = 'War'
+AND mi3. info > 40
+AND mi1. info = 'War'
 AND mi2. info LIKE 'USA'
-GROUP BY t.production_year")
+GROUP BY t. production_year")
 ```
 
-```{r}
+```{r,  message = FALSE, warning = FALSE}
+# Database Querying using SQL to get all movies in the US
 All_US <- db %>%
-  dbGetQuery("SELECT COUNT(DISTINCT t.title)AS number2, t. production_year
+  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number2, t. production_year
 FROM title t
 JOIN movie_info mi1 ON t. id = mi1. movie_id
 JOIN movie_info mi2 ON t. id = mi2. movie_id
@@ -65,54 +67,63 @@ WHERE t. kind_id = 1
 AND mi3. info_type_id = 1
 AND mi1. info_type_id = 3
 AND mi2. info_type_id = 8 
-AND mi3. info >40
+AND mi3. info > 40
 AND mi2. info LIKE 'USA'
-AND t.production_year IS NOT NULL 
-GROUP BY t.production_year;") 
+AND t. production_year IS NOT NULL 
+GROUP BY t. production_year;") 
 ```
 
-```{r}
+```{r,  message = FALSE, warning = FALSE}
+# Compute the proportion of war movies in the US
 Prop_US <- All_US %>%
   full_join(War_US, by = "production_year") %>%
-  mutate(prop = number / number2)
+    mutate(prop = number / number2) 
+Table_US <- All_US %>%
+  full_join(War_US, by = "production_year") %>%
+    mutate(prop = number / number2) %>%
+  rename(sum_movies = number2, war_movies = number, country = info) %>%
+filter(!is.na(production_year) & !is.na(country) ) %>%
+  select(production_year, war_movies, sum_movies)
 
-```
-
-
-```{r}
-datatable(Prop_US)
 ```
 
 ```{r, message = FALSE, warning = FALSE}
-# Draw the graph for war movies in the US
+# Draw the graph for % of war movies in the US
 ggplot(Prop_US, aes(y = prop, x = production_year)) +
  geom_bar(stat = "identity", position = "stack") +
   labs(title = "% War Movies in the US") +
-  geom_smooth()+
-  xlim(1925, 2015)+
+  geom_smooth() +
+  xlim(1925, 2015) +
   scale_y_continuous(
                      breaks = c(0.0, 0.1, 0.2), 
-                     labels = c('0%', '10%','20%')
-                     )+
+                     labels = c('0%', '10%', '20%')
+                     ) +
   theme_fivethirtyeight()
 ```
-
-This graph showed the amount of war movies made in the US. There are two significant peaks: 1939 to 1945, and 1955 to 1960s.
-
-![The Great Dictator, 1940](https://resizing.flixster.com/IzPRo3kAeZKq1x8gh_tOpF5OFhc=/300x300/v1.bjs1MzcyMzU7ajsxNzU1NjsxMjAwOzk1MDs0MDA){#id .class width=600 height=400px}
-
-The first peak is around 1939 to 1945, which is the time of World War II. Relaying on European market for profit, most Hollywood war films didn’t transmit a clear anti-Nazi message. Of course, there were exceptions, for example [The Great Dictator](http://www.imdb.com/title/tt0032553/), which transmitted a message of anti-fascism. But Hollywood had not held a firm view point until the Pearl Harbor. Most war movies featured a group of men from different background, whom were considered as a unit on the battlefield. Due to limited financial sources, government cut the amount of available film stock by 25 percent and restricted the amount of money that could be spent on each film. In belief that war movies could contribute to national morale but fear of immediate censorship, government even established agencies to supervise film industry during WWII. However, film industry remained highly profitable during war time as watching a movie was one of the few enjoyable thing for people in such a depressing time.
-
-The second peak occurs during the Vietnam War period from 1955 to 1973. Unlike previous wars, Vietnam War didn't unite the country as a whole but tore it apart. [The Green Berets](http://www.imdb.com/title/tt0063035/) is a film directed by John Wayne, and Ray Kelloggin in 1968 featuring the Vietnam War which was highly supported by the White House as a way to unite the US residents. The movie is about two teams of crack Green Berets ^[The Green Berets is the colloquial form of The United States Army Special Forces. The Green Berets are a special operations force tasked with five primary missions: unconventional warfare (the original and most important mission of Special Forces), foreign internal defense, special reconnaissance, direct action, and counter-terrorism.  Cited from: https://en.wikipedia.org/wiki/Special_Forces_(United_States_Army)] were chosen to accomplish a mission in South Vietnam during the hardest time. Most of movies produced in this era were promoting nationalism by shallowly posing Vietnam as villain and creating American heroes. Even John Wayne himself saw the movie as “an American film about American boys who were heroes over there.In that sense, it was propaganda.”
+                  
+```{r,  message = FALSE, warning = FALSE}
+# Show the table of % war movies in the US
+datatable(Table_US)
+```
 
 
-While wondering if the same theory applied for other countries, we looked into four other countries including the United Kingdom, Japan, Germany, and Soviet Union. We divided the four countries into two groups: the United Kingdom and Soviet Union were put together as the victors of WWII; Japan and Germany were put together as the losers of WWII. Please notice that due to the huge difference between the percentage of war movies in each countries, we used different y-scale. 
+This graph shows the amount of war movies made in the US. There are two significant peaks: 1939 to 1945, and 1955 to 1960s.
 
+The first peak is around 1939 to 1945, which was the time of [World War II](http://www.digitalhistory.uh.edu/teachers/modules/ww2/wartimehollywood.html). Relying on European market for profit, most Hollywood war films didn’t transmit a clear anti-Nazi message. Of course, there were exceptions, for example [The Great Dictator](http://www.imdb.com/title/tt0032553/), which transmitted a message of anti-fascism. But Hollywood had not held a firm view point until the Pearl Harbor. Before then war movies featured a group of men from different background, whom were considered as a unit on the battlefield. Due to limited financial sources, government cut the amount of available film stock by 25 percent and restricted the amount of money that could be spent on each film. In belief that war movies could contribute to national morale but fear of immediate censorship, government even established agencies to supervise film industry during WWII. However, film industry remained highly profitable during war time as watching a movie was one of the few enjoyable thing for people in such a depressing time.
+
+
+![The Great Dictator, 1940](https://resizing.flixster.com/IzPRo3kAeZKq1x8gh_tOpF5OFhc=/300x300/v1.bjs1MzcyMzU7ajsxNzU1NjsxMjAwOzk1MDs0MDA){#id .class width=500 height=400px}
+
+
+The second peak occurred during the [Vietnam War](https://www.filmcomment.com/article/hollywood-and-vietnam/) period from 1955 to 1973. Unlike previous wars, The Vietnam War didn't unite the country as a whole but tore it apart. [The Green Berets](http://www.imdb.com/title/tt0063035/) is a film directed by John Wayne, and Ray Kelloggin in 1968 featuring the Vietnam War which was highly supported by the White House as a way to unite the US residents. The movie is about two teams of crack Green Berets ^[The Green Berets is the colloquial form of The United States Army Special Forces. The Green Berets are a special operations force tasked with five primary missions: unconventional warfare (the original and most important mission of Special Forces), foreign internal defense, special reconnaissance, direct action, and counter-terrorism.  Cited from: https://en.wikipedia.org/wiki/Special_Forces_(United_States_Army)] that were chosen to accomplish a mission in South Vietnam during the hardest time. Most of the movies produced in this era were promoting nationalism by shallowly posing Vietnam as villain and creating American heroes. Even John Wayne himself saw the movie as “an American film about American boys who were heroes over there. In that sense, it was propaganda.”
+
+
+![The Green Berets, 1968](http://www.fairfaxunderground.com/forum/file.php?40,file=131331,filename=maxresdefault.jpg){#id .class width=800 height=400px}
 
 ```{r, message = FALSE, warning = FALSE}
-# Database Querying using SQL to get war movies made in China
+# Database Querying using SQL to get war movies made in the UK
 War_UK <- db %>%
-  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number, t. production_year, mi2. info 
+  dbGetQuery("SELECT COUNT(DISTINCT t. title) AS number, t. production_year, mi2. info 
 FROM title t
 JOIN movie_info mi1 ON t. id = mi1. movie_id
 JOIN movie_info mi2 ON t. id = mi2. movie_id
@@ -121,32 +132,33 @@ WHERE t. kind_id = 1
 AND mi3. info_type_id = 1
 AND mi1. info_type_id = 3
 AND mi2. info_type_id = 8 
-AND mi3. info >40
-AND mi1.info = 'War'
+AND mi3. info > 40
+AND mi1. info = 'War'
 AND mi2. info LIKE 'UK'
-AND mi1.info is NOT NULL
-GROUP BY t.production_year")
-```
-
-```{r}
-All_UK <- db %>%
-  dbGetQuery("SELECT COUNT(DISTINCT t.title)AS number2, t. production_year
-FROM title t
-JOIN movie_info mi1 ON t. id = mi1. movie_id
-JOIN movie_info mi2 ON t. id = mi2. movie_id
-JOIN movie_info mi3 ON t. id = mi3. movie_id
-WHERE t. kind_id = 1
-AND mi3. info_type_id = 1
-AND mi1. info_type_id = 3
-AND mi2. info_type_id = 8 
-AND mi3. info >40
-AND mi2. info LIKE 'UK'
-AND t.production_year IS NOT NULL 
-GROUP BY t.production_year;") 
+AND mi1. info is NOT NULL
+GROUP BY t. production_year")
 ```
 
 ```{r, message = FALSE, warning = FALSE}
-# Database Querying using SQL to get war movies made in China
+# Database Querying using SQL to get all movies made in the UK
+All_UK <- db %>%
+  dbGetQuery("SELECT COUNT(DISTINCT t. title) AS number2, t. production_year
+FROM title t
+JOIN movie_info mi1 ON t. id = mi1. movie_id
+JOIN movie_info mi2 ON t. id = mi2. movie_id
+JOIN movie_info mi3 ON t. id = mi3. movie_id
+WHERE t. kind_id = 1
+AND mi3. info_type_id = 1
+AND mi1. info_type_id = 3
+AND mi2. info_type_id = 8 
+AND mi3. info > 40
+AND mi2. info LIKE 'UK'
+AND t. production_year IS NOT NULL 
+GROUP BY t. production_year;") 
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Database Querying using SQL to get war movies made in Soviet Union
 War_SU <- db %>%
   dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number, t. production_year, mi2. info 
 FROM title t
@@ -157,16 +169,17 @@ WHERE t. kind_id = 1
 AND mi3. info_type_id = 1
 AND mi1. info_type_id = 3
 AND mi2. info_type_id = 8 
-AND mi3. info >40
-AND mi1.info = 'War'
+AND mi3. info > 40
+AND mi1. info = 'War'
 AND mi2. info LIKE 'Soviet Union'
-AND mi1.info is NOT NULL
-GROUP BY t.production_year")
+AND mi1. info is NOT NULL
+GROUP BY t. production_year")
 ```
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
+# Database Querying using SQL to get war movies made in Soviet Union
 All_SU <- db %>%
-  dbGetQuery("SELECT COUNT(DISTINCT t.title)AS number2, t. production_year
+  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number2, t. production_year
 FROM title t
 JOIN movie_info mi1 ON t. id = mi1. movie_id
 JOIN movie_info mi2 ON t. id = mi2. movie_id
@@ -175,71 +188,71 @@ WHERE t. kind_id = 1
 AND mi3. info_type_id = 1
 AND mi1. info_type_id = 3
 AND mi2. info_type_id = 8 
-AND mi3. info >40
+AND mi3. info > 40
 AND mi2. info LIKE 'Soviet Union'
-AND t.production_year IS NOT NULL 
-GROUP BY t.production_year;") 
+AND t. production_year IS NOT NULL 
+GROUP BY t. production_year;") 
 ```
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
+# Compute the proportion of war movies in the UK and Soviet Union
 Prop_UK <- All_UK %>%
   full_join(War_UK, by = "production_year") %>%
   mutate(prop = number / number2) %>%
-  rename(sum_movies= number2, war_movies= number, country= info)
-Prop_UK
+  rename(sum_movies = number2, war_movies = number, country = info)
 Prop_SU <- All_SU %>%
   full_join(War_SU, by = "production_year") %>%
   mutate(prop = number / number2) %>%
-  rename(sum_movies= number2, war_movies= number, country= info)
-Prop_SU
+  rename(sum_movies = number2, war_movies = number, country = info)
 UK_SU <- Prop_UK %>%
   bind_rows(Prop_SU) %>%
-  filter(!is.na(production_year)&!is.na(country) )
+  filter(!is.na(production_year) & !is.na(country) )
 ```
 
+We wondered if the same theory could be applied to other countries. Thus we looked into four other countries including the Soviet Union, United Kingdom, Germany, and Japan. We divided the four countries into two groups: the United Kingdom and Soviet Union were put together because they won the WWII; Japan and Germany were put together because they were defeated. Please notice that due to the huge difference between the percentages of war movies in each countries, we used different y-scale for those two groups. 
 
 ```{r, message = FALSE, warning = FALSE}
-# Draw the graph for war movies in China
+# Draw the graph for % of war movies in UK and SU
 ggplot(UK_SU, aes(y = prop, x = production_year)) +
  geom_bar(stat = "identity", position = "stack") +
   labs(title = "% War Movies in the UK and the Soviet Union") +
-   geom_smooth()+
-  facet_wrap(~country)+
-  xlim(1925, 2015)+
+   geom_smooth() +
+  facet_wrap(~country) +
+  xlim(1925, 2015) +
     scale_y_continuous(
                      breaks = c(0.0, 0.4, 0.8), 
-                     labels = c('0%', '40%','80%')
-                     )+
+                     labels = c('0%', '40%', '80%')
+                     ) +
   theme_fivethirtyeight()
 ```
+
+In accordance with our hypothesis, The Soviet Union produced more war movies during wartime. Starting from 1941, because the government encouraged the production of war movies, the proportion of war movies boosted to about 80%. Around 1950s, Stalin began to restrict war movies as he found out that war movies could expose Soviet Union’s residents to “exotic” Western culture.
 
 The United Kingdom, another victor of the WWII, has a very similar trend of war movies compared to the United States. WWII has significant influence on war movies of UK, since a sudden peak occurs around 1939-1945. 1960 -1980 is a peaceful era for the UK. As a result, the proportion of war movies declined correspondingly.
 
-It is true for Soviet Union that there were more war movies during wartime. Starting from 1941, because the government encouraged the production of war movies, the proportion of war movies boosted to about 80%. Around 1950s, Stalin began to restrict war movies as he found out that war movies could expose Soviet Union’s residents to “exotic” Western culture.
-
+```{r, message = FALSE, warning = FALSE}
+# Database Querying using SQL to get war movies made in Japan
+War_Japan <- db %>%
+  dbGetQuery("SELECT COUNT(DISTINCT t. title) AS number, t. production_year, mi2. info 
+FROM title t
+JOIN movie_info mi1 ON t. id = mi1. movie_id
+JOIN movie_info mi2 ON t. id = mi2. movie_id
+JOIN movie_info mi3 ON t. id = mi3. movie_id
+WHERE t. kind_id = 1
+AND mi3. info_type_id = 1
+AND mi1. info_type_id = 3
+AND mi2. info_type_id = 8 
+AND mi3. info > 40
+AND mi1. info = 'War'
+AND mi2. info LIKE 'Japan'
+AND mi1. info is NOT NULL
+GROUP BY t. production_year")
+```
 
 ```{r, message = FALSE, warning = FALSE}
-# Database Querying using SQL to get war movies made in China
-War_Japan <- db %>%
-  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number, t. production_year
-FROM title t
-JOIN movie_info mi1 ON t. id = mi1. movie_id
-JOIN movie_info mi2 ON t. id = mi2. movie_id
-JOIN movie_info mi3 ON t. id = mi3. movie_id
-WHERE t. kind_id = 1
-AND mi3. info_type_id = 1
-AND mi1. info_type_id = 3
-AND mi2. info_type_id = 8 
-AND mi3. info >40
-AND mi1.info = 'War'
-AND mi2. info LIKE 'Japan'
-AND mi1.info is NOT NULL
-GROUP BY t.production_year")
-```
-
-```{r}
+# Database Querying using SQL to get all movies made in Japan
 All_Japan <- db %>%
-  dbGetQuery("SELECT COUNT(DISTINCT t.title)AS number2, t. production_year
+  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number2, t. production_year
 FROM title t
 JOIN movie_info mi1 ON t. id = mi1. movie_id
 JOIN movie_info mi2 ON t. id = mi2. movie_id
@@ -248,81 +261,81 @@ WHERE t. kind_id = 1
 AND mi3. info_type_id = 1
 AND mi1. info_type_id = 3
 AND mi2. info_type_id = 8 
-AND mi3. info >40
+AND mi3. info > 40
 AND mi2. info LIKE 'Japan'
-AND t.production_year IS NOT NULL 
-GROUP BY t.production_year;") 
+AND t. production_year IS NOT NULL 
+GROUP BY t. production_year;") 
 ```
 
-```{r}
+```{r, message = FALSE, warning = FALSE}
+# Database Querying using SQL to get war movies made in Germany
+War_Germany <- db %>%
+  dbGetQuery("SELECT COUNT(DISTINCT t. title) AS number, t. production_year, mi2. info
+FROM title t
+JOIN movie_info mi1 ON t. id = mi1. movie_id
+JOIN movie_info mi2 ON t. id = mi2. movie_id
+JOIN movie_info mi3 ON t. id = mi3. movie_id
+WHERE t. kind_id = 1
+AND mi3. info_type_id = 1
+AND mi1. info_type_id = 3
+AND mi2. info_type_id = 8 
+AND mi3. info > 40
+AND mi1. info = 'War'
+AND mi2. info LIKE '%Germany'
+AND mi1. info is NOT NULL
+GROUP BY t. production_year;")
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Database Querying using SQL to get all movies made in Germany
+All_Germany <- db %>%
+  dbGetQuery("SELECT COUNT(DISTINCT t. title) AS number2, t. production_year
+FROM title t
+JOIN movie_info mi1 ON t. id = mi1. movie_id
+JOIN movie_info mi2 ON t. id = mi2. movie_id
+JOIN movie_info mi3 ON t. id = mi3. movie_id
+WHERE t. kind_id = 1
+AND mi3. info_type_id = 1
+AND mi1. info_type_id = 3
+AND mi2. info_type_id = 8 
+AND mi3. info > 40
+AND mi2. info LIKE '%Germany'
+AND t. production_year IS NOT NULL 
+GROUP BY t. production_year;") 
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Compute the proportion of war movies in Japan and Germany
 Prop_Japan <- All_Japan %>%
   full_join(War_Japan, by = "production_year") %>%
-  mutate(prop = number / number2)
-```
-```{r, message = FALSE, warning = FALSE}
-# Database Querying using SQL to get war movies made in China
-War_Germany <- db %>%
-  dbGetQuery("SELECT COUNT(DISTINCT t.title) AS number, t. production_year, mi2.info
-FROM title t
-JOIN movie_info mi1 ON t. id = mi1. movie_id
-JOIN movie_info mi2 ON t. id = mi2. movie_id
-JOIN movie_info mi3 ON t. id = mi3. movie_id
-WHERE t. kind_id = 1
-AND mi3. info_type_id = 1
-AND mi1. info_type_id = 3
-AND mi2. info_type_id = 8 
-AND mi3. info >40
-AND mi1.info = 'War'
-AND mi2. info LIKE '%Germany'
-AND mi1.info is NOT NULL
-GROUP BY t.production_year;")
-```
-
-```{r}
-All_Germany <- db %>%
-  dbGetQuery("SELECT COUNT(DISTINCT t.title)AS number2, t. production_year
-FROM title t
-JOIN movie_info mi1 ON t. id = mi1. movie_id
-JOIN movie_info mi2 ON t. id = mi2. movie_id
-JOIN movie_info mi3 ON t. id = mi3. movie_id
-WHERE t. kind_id = 1
-AND mi3. info_type_id = 1
-AND mi1. info_type_id = 3
-AND mi2. info_type_id = 8 
-AND mi3. info >40
-AND mi2. info LIKE '%Germany'
-AND t.production_year IS NOT NULL 
-GROUP BY t.production_year;") 
-```
-
-```{r}
+  mutate(prop = number / number2) %>%
+  rename(sum_movies = number2, war_movies = number, country = info)
 Prop_Germany <- All_Germany %>%
   full_join(War_Germany, by = "production_year") %>%
-  mutate(prop = number / number2)
+  mutate(prop = number / number2, info ='Germany') %>%
+  rename(sum_movies = number2, war_movies = number, country = info) 
+Germany_Japan <- Prop_Germany %>%
+  bind_rows(Prop_Japan) %>%
+  filter(!is.na(production_year) & !is.na(country) )
 ```
 
 ```{r, message = FALSE, warning = FALSE}
-# Draw the graph for war movies in the US
-ggplot(Prop_Japan, aes(y = prop, x = production_year)) +
+# Draw the graph for war movies in the Japan and Germany
+ggplot(Germany_Japan, aes(y = prop, x = production_year)) +
  geom_bar(stat = "identity", position = "stack") +
-  labs(title = "% War Movies in Japan") +
-  geom_smooth()+
-   xlim(1925, 2015)+
+  labs(title = "% War Movies in Germany and Japan") +
+    facet_wrap(~country) +
+  geom_smooth() +
+   xlim(1925, 2015) +
      scale_y_continuous(
                      breaks = c(0.0, 0.2, 0.4), 
-                     labels = c('0%', '20%','40%')
-                     )+
-  theme_fivethirtyeight()
-ggplot(Prop_Germany, aes(y = prop, x = production_year)) +
- geom_bar(stat = "identity", position = "stack") +
-  labs(title = "% War Movies in Germany") +
-   geom_smooth()+
-  xlim(1925, 2015)+
-     scale_y_continuous(
-                     breaks = c(0.0, 0.1, 0.2), 
-                     labels = c('0%', '10%','20%')
-                     )+
+                     labels = c('0%', '20%', '40%')
+                     ) +
   theme_fivethirtyeight()
 ```
 
-It is true for Soviet Union that there were more war movies during war time. From 1941 to 1944, since government encouraged the production of war movies, the amount of war movies boosted. From 1945 to 1953, Stalin began to restrict war movies as he found out that war movies made Soviet Union’s residents more familiar with exotic culture.
+People might be surprised that the amount of war movies during the era of Nazi Germany was not increasing. During that period, [films that were not in accordance with the views of the Nazi authority could not be made](https://en.wikipedia.org/wiki/Cinema_of_Germany).However, despite the existence of anti-semitic propaganda works such as The Eternal Jew (1940), the majority of German films from the Nazi period were intended principally as works of entertainment. Thus the proportion of war movies remained below 10% during that time.
+
+The reason why war movies took up almost 25% of movie production around 1945 is the amount of movies remains low between 1945 and 1950 as a consequence of the defeat of Nazi Germany in 1945 and the onset of the Cold War in 1947. Actually, there were only 4 movies per year in 1945 and 1946. Thus the relatively high proportion of war movies is not that meaningful in this case.
+
+Japanese war movies had a relatively high proportion during [WWII](https://en.wikipedia.org/wiki/Cinema_of_Japan#1940s). This corresponded with our hypothesis that war movies are dependent on historical warfare. When Japan was invading other countries to expand its Empire, the Japanese government saw war movies as a tool to spread propaganda of its glory and invincibility. As a result, most films in that era focused on heroism and patriotism. Movies such as A Triumph of Wings Ever talks about two young Japanese men who become pilots of the Army Air Service. After 1950s, the proportion of war movies declined significantly. One possible reason is that the Japanese film market is mainly taken over by US after Western Allied force ^[The Allied occupation of Japan happened at the end of World War II. This foreign presence marked the only time in Japan's history that it had been occupied by a foreign power. The occupation, codenamed Operation Blacklist, was ended by the San Francisco Peace Treaty, signed on September 8, 1951, and effective from April 28, 1952.]  occupied Japan.
