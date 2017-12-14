@@ -1,5 +1,5 @@
 ---
-title: 'When war becomes entertainment'
+title: 'When War Becomes Entertainment'
 author: "Sifan Liu, Ziheng Ru, Runxin Wang"
 date: "12/1/2017"
 output:
